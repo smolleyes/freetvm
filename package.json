@@ -1,0 +1,14 @@
+{
+  "name": "freeTvM-server",
+  "main": "index.html",
+  "window": {
+    "frame": true,
+    "toolbar": false,
+    "position": "center",
+    "title": "freeTvM-server",
+    "width": 400,
+    "height": 600,
+    "position": "right",
+    "show": false
+  }
+}

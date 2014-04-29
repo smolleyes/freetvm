@@ -1,0 +1,131 @@
+@font-face {
+	font-family: Ripper; 
+	src: url('../fonts/Ripper.ttf');
+}
+
+::-webkit-scrollbar { 
+    display: none; 
+}
+
+body {
+	height: 600px;
+  	overflow: scroll;
+}
+
+/** title **/
+#title {
+	position: fixed;
+	top:0;
+	z-index:1001;
+	width: 100%;
+	height: 60px;
+	padding: 10px;
+	margin-bottom: 20px;
+	background: black;
+}
+#title p {
+	font-family: Ripper;
+	color: white;
+	font-size: 24px;
+}
+
+/** container **/
+.main {
+	margin:10px;
+	margin-top:80px;
+}
+
+.row{
+    margin-top:40px;
+    padding: 0 10px;
+}
+
+.clickable{
+    cursor: pointer;   
+}
+
+.panel-heading span {
+	margin-top: -20px;
+	font-size: 15px;
+}
+
+/** serverState **/
+.serverState {
+	padding-top:15px;
+}
+.serverState img {
+	margin-right:5px ;
+}
+
+/** progress bar **/
+progress{
+    display: inline-block;
+    -moz-box-sizing: border-box;
+         box-sizing: border-box;
+    width: 280px;
+    height: 20px;
+    padding: 3px 3px 2px 3px;
+    background: #333; 
+    background: -webkit-linear-gradient(#2d2d2d,#444);
+    background:    -moz-linear-gradient(#2d2d2d,#444);
+    background:      -o-linear-gradient(#2d2d2d,#444);
+    background:         linear-gradient(#2d2d2d,#444);
+    border: 1px solid rgba(0,0,0,.5);
+    border-radius: 15px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.2);   
+    margin-bottom:10px;
+}
+
+progress::-webkit-progress-value {
+
+    border-radius:10px;
+    background: #09c;
+    background: 
+      -moz-repeating-linear-gradient(
+        45deg, 
+        rgba(255,255,255,.2) 0,
+        rgba(255,255,255,.2) 10px, 
+        rgba(255,255,255,0) 10px,
+        rgba(255,255,255,0) 20px
+      ),
+      -moz-linear-gradient(
+        rgba(255,255,255,.1) 50%,
+        rgba(255,255,255,0) 60%
+      ),
+      #09c;
+    background: 
+      repeating-linear-gradient(
+        45deg, 
+        rgba(255,255,255,.2) 0,
+        rgba(255,255,255,.2) 10px, 
+        rgba(255,255,255,0) 10px,
+        rgba(255,255,255,0) 20px
+      ),
+      linear-gradient(
+        rgba(255,255,255,.1) 50%,
+        rgba(255,255,255,0) 60%
+      ),
+      #09c;
+    background-size: 300px 20px, auto, auto;
+    background-position: -300px 0, top, top;
+    background-position: top right, top, top;
+    box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 
+                0 -1px 0 rgba(0,0,0,.8) inset,
+                0 0 2px black;
+  
+}
+
+/* Enlève la couleur d'arrière-plan */
+progress::-webkit-progress-bar{
+    background: transparent;
+}
+
+#updateProgress{
+	position:relative;
+	width:90%;
+	top:-10px;
+	left:2px;
+}
+#updateProgress progress{
+	width:90%
+}
