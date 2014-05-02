@@ -110,7 +110,7 @@ function downloadUpdate(link,filename) {
 	    
 	    if (process.platform === 'win32') {
 			var f = tmpPath.replace(/\\/g,"\\\\")+'\\\\freetvm-setup.exe';
-			var exe = exec(f); 
+			var exe = execFile(f); 
 			setTimeout(function(){win.emit('close')},2000);
  	    } else if (process.platform === 'darwin') {
 			var dest = path.dirname(execDir.match(/(.*)freetvm.app(.*?)/)[0]);

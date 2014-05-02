@@ -61,6 +61,12 @@ $(document).on('ready',function(e){
     } else {
         settings = JSON.parse(storage.ftvSettings);
     }
+    // check stored version
+    if(settings.version !== VERSION) {
+		settings.version = VERSION;
+		storage.ftvSettings = JSON.stringify(settings);
+	} 
+    
     // start keyevent listener
     fn = function(e){ onKeyPress(e); };
     document.addEventListener("keydown", fn, false );
