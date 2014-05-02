@@ -18,7 +18,7 @@ win.on('loaded', function() {
 });
 
 //globals
-VERSION="0.1";
+VERSION="0.2";
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
 var megaServer;
@@ -151,35 +151,50 @@ function startMegaServer() {
                 var html="";
                 var json = {};
                 json.channels = [];
+                var canalArr = [];
+                var fChannels = [];
                 $.get('http://mafreebox.freebox.fr/freeboxtv/playlist.m3u',function(resp){
-                    var list = resp.split('#EXTINF');
-                    $.each(list,function(index,c){
-                        var chaine = c.trim().replace(/(\r\n|\n|\r)/gm,"");
-                        var infos = {};
-                        try {
-                            infos.canal = chaine.split(" ")[0].split(",")[1];
-                            infos.link = 'rtsp://'+chaine.match(/rtsp:\/\/(.*)/)[1];
-                            var n = chaine.match(/(.*?)-(.*?)\)/)[2]+(')');
-                            infos.name = n.trim();
-                            infos.thumb = 'img/fbxLogos/'+infos.canal+'.png';
+                  var list = resp.split('#EXTINF');
+                  $.each(list,function(index,c){
+                    var chaine = c.trim().replace(/(\r\n|\n|\r)/gm,"");
+                    var infos = {};
+                    try {
+                        infos.canal = chaine.split(" ")[0].split(",")[1];
+                        infos.link = 'rtsp://'+chaine.match(/rtsp:\/\/(.*)/)[1];
+                        var n = chaine.match(/(.*?)-(.*?)\)/)[2]+(')');
+                        infos.name = n.trim();
+                        infos.thumb = 'img/fbxLogos/'+infos.canal+'.png';
+                        if(infos.name.indexOf('(auto)') !== -1) {
                             json.channels.push(infos);
-                            var link =  'http://'+req.headers["host"]+'/?file='+infos.link+'&tv';
-                            html+='<a class="tvLink" href="#" src="'+link+'" style="decoration:none;">'+infos.name+'</a><br>';
-                            if (index+1 === list.length) {
-                                if (req.url.indexOf("json") !== -1){
-                                    var body = JSON.stringify(json);
-                                    res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
-                                    res.end(body);
-                                } else {
-                                    res.writeHead(200,{'Content-type': 'text/html'});
-                                    res.end(html, 'utf-8');
-                                }
-                            }
-                        } catch(err){
-                            console.log("n'est pas une chaine", err);
+                            canalArr.push(infos.canal);
+                        } else {
+                            fChannels.push(infos);
                         }
-                    });
-                });
+                        var link =  'http://'+req.headers["host"]+'/?file='+infos.link+'&tv';
+                      if (index+1 === list.length) {
+                        if (req.url.indexOf("json") !== -1){
+                              $.each(fChannels,function(index2,channel){
+                                  if($.inArray(channel.canal,canalArr) === -1) {
+                                      console.log("canal "+channel.canal+" n est pas dans array");
+                                      json.channels.push(channel);
+                                      console.log(json);
+                                      if (index2+1 == fChannels.length) {
+                                          var body = JSON.stringify(json);
+                                          res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                                          res.end(body);
+                                      }
+                                  }
+                              });
+                        } else {
+                              res.writeHead(200,{'Content-type': 'text/html'});
+                              res.end(html, 'utf-8');
+                        }
+                      }
+                    } catch(err){
+                      console.log("n'est pas une chaine", err);
+                    }
+                 });
+              });
             } else if (req.url.indexOf("/getLocalDbJson") !== -1){
                 getLocalDb(res);
             } else if (req.url.indexOf("/test") !== -1){
