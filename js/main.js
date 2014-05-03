@@ -17,6 +17,7 @@ win.setResizable(false);
 win.on('loaded', function() {
     this.show();
     this.setPosition("center");
+    startUpnp();
 });
 
 //globals
@@ -501,38 +502,40 @@ function onKeyPress(key) {
 }
 
 
-// start upnp port forwarding
-upnp.searchGateway(timeout, function(err, gateway) {
- 
-  if (err) throw err;
-  
-  console.log("Found Gateway!");
-  console.log("Fetching External IP ... ");
-  
-  gateway.getExternalIP(function(err, ip) {
-  
-    if (err) throw err;
-    $("#ipFreebox").empty().append('<b>Ip</b>:    ' +ip);
-    
-    gateway.AddPortMapping(
-        "TCP"             // or "UDP"
-      , 8888              // External port
-      , 8888              // Internal Port
-      , myIp              // Internal Host (ip address of your pc)
-      , "Freetvm"     // Description.
-      , function(err) {
-      
-      if (err) alert('Impossible d\'activer la redirection de port, merci d\'activer l\'upnpIGD sur votre freebox!');
-      //verify access
-      $.get('http://'+myIp+':8888/test',function(res){
-        if(res !== 'ok!') {
-            alert("pas d'accès exterieur à votre freebox, merci de vérifier vos firewalls etc... (autoriser port 8888 en tcp)");
-        } else {
-            console.log("Accès exterieur ok!")
-        }
-      });  
-    });
-    
-  });
-  
-});
+function startUpnp() {
+	// start upnp port forwarding
+	upnp.searchGateway(timeout, function(err, gateway) {
+	 
+	  if (err) throw err;
+	  
+	  console.log("Found Gateway!");
+	  console.log("Fetching External IP ... ");
+	  
+	  gateway.getExternalIP(function(err, ip) {
+	  
+		if (err) console.log(err);
+		$("#ipFreebox").empty().append('<b>Ip</b>:    ' +ip);
+		
+		gateway.AddPortMapping(
+			"TCP"             // or "UDP"
+		  , 8888              // External port
+		  , 8888              // Internal Port
+		  , myIp              // Internal Host (ip address of your pc)
+		  , "Freetvm"     // Description.
+		  , function(err) {
+		  
+		  if (err) alert('Impossible d\'activer la redirection de port, merci d\'activer l\'upnpIGD sur votre freebox!');
+		  //verify access
+		  $.get('http://'+myIp+':8888/test',function(res){
+			if(res !== 'ok!') {
+				alert("pas d'accès exterieur à votre freebox, merci de vérifier vos firewalls etc... (autoriser port 8888 en tcp)");
+			} else {
+				console.log("Accès exterieur ok!")
+			}
+		  });  
+		});
+		
+	  });
+	  
+	});
+}
