@@ -3,6 +3,7 @@ var path = require('path');
 var fs = require('fs');
 var temp = require('temp');
 var execFile = require('child_process').exec;
+
 var execDir;
 var online_version;
 
@@ -14,7 +15,6 @@ $(document).ready(function(){
                 datas.push(chunk);
             });
             res.on('end',function(){
-                console.log("Checking for updates....");
                 var data = datas.join('');
                 var txt = $('p',data).prevObject[1].innerHTML;
                 online_version = txt;
@@ -113,7 +113,7 @@ function downloadUpdate(link,filename) {
 			var exe = execFile(f); 
 			setTimeout(function(){win.emit('close')},2000);
  	    } else if (process.platform === 'darwin') {
-			var dest = path.dirname(execDir.match(/(.*)freetvm.app(.*?)/)[0]);
+			var dest = path.dirname(execDir.match(/(.*)FreetvM-server.app(.*?)/)[0]);
 		    var args = ['-o',filename,'-d',dest];
 		    var update = spawn('unzip', args);
 	    	update.on('exit', function(data){

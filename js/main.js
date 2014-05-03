@@ -7,6 +7,8 @@ var fs = require('fs'),
     deviceType = require('ua-device-type'),
     url = require('url'),
     spawn = require('child_process').spawn;
+    upnp = require("upnp");
+    myIp = require("node-ip").address();
 
 // node-webkit window
 var gui = require('nw.gui');
@@ -18,7 +20,8 @@ win.on('loaded', function() {
 });
 
 //globals
-VERSION="0.2";
+VERSION="0.2.1";
+var timeout = 5000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
 var megaServer;
@@ -181,9 +184,7 @@ function startMegaServer() {
                         if (req.url.indexOf("json") !== -1){
                               $.each(fChannels,function(index2,channel){
                                   if($.inArray(channel.canal,canalArr) === -1) {
-                                      console.log("canal "+channel.canal+" n est pas dans array");
                                       json.channels.push(channel);
-                                      console.log(json);
                                       if (index2+1 == fChannels.length) {
                                           var body = JSON.stringify(json);
                                           res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
@@ -214,7 +215,8 @@ function startMegaServer() {
         }
     }).listen(8888);
     $("#serverStateImg").attr('src','img/online.png');
-    $("#serverState").empty().append('Serveur en écoute sur '+nodeip.address()+' port 8888');
+    $("#serverState").empty().append('Serveur en écoute sur '+nodeip.address()+' port 8888'),
+    $("#ipLocale").empty().append('<b>Ip locale</b>: '+myIp);
     }
 }
 
@@ -226,12 +228,16 @@ function getLocalDb(res) {
     try {
         var dirs = settings.sharedFolders;
         if ((dirs === undefined) || (dirs.length === 0)) {
-            fileList.basedirs[dir] = {};
+            res.writeHead(200, {"Content-Type": "text/html;"});
+            res.write('no share');
+            res.end();
             return;
         }
     } catch(err) {
         console.log("shared dirs error : "+ err);
-        fileList.basedirs[dir] = {};
+        res.writeHead(200, {"Content-Type": "text/html;"});
+        res.write('no share');
+        res.end();
         return;
     }
     var fileList = [];
@@ -493,3 +499,40 @@ function onKeyPress(key) {
         win.showDevTools();
     }
 }
+
+
+// start upnp port forwarding
+upnp.searchGateway(timeout, function(err, gateway) {
+ 
+  if (err) throw err;
+  
+  console.log("Found Gateway!");
+  console.log("Fetching External IP ... ");
+  
+  gateway.getExternalIP(function(err, ip) {
+  
+    if (err) throw err;
+    $("#ipFreebox").empty().append('<b>Ip</b>:    ' +ip);
+    
+    gateway.AddPortMapping(
+        "TCP"             // or "UDP"
+      , 8888              // External port
+      , 8888              // Internal Port
+      , myIp              // Internal Host (ip address of your pc)
+      , "Freetvm"     // Description.
+      , function(err) {
+      
+      if (err) alert('Impossible d\'activer la redirection de port, merci d\'activer l\'upnpIGD sur votre freebox!');
+      //verify access
+      $.get('http://'+myIp+':8888/test',function(res){
+        if(res !== 'ok!') {
+            alert("pas d'accès exterieur à votre freebox, merci de vérifier vos firewalls etc... (autoriser port 8888 en tcp)");
+        } else {
+            console.log("Accès exterieur ok!")
+        }
+      });  
+    });
+    
+  });
+  
+});
