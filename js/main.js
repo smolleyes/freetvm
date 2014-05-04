@@ -20,9 +20,12 @@ win.on('loaded', function() {
     startUpnp();
 });
 
+//set default timout
+$.ajaxSetup({timeout: 5000});
+
 //globals
-VERSION="0.2.1";
-var timeout = 5000; //ms
+VERSION="0.2.2";
+var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
 var megaServer;
@@ -53,6 +56,18 @@ tray.on('click',function(e){
         winIshidden = true;
     }
 });
+
+//catch exceptions
+try {
+	process.on('uncaughtException', function(err) {
+		try{
+			var error = err.stack;
+      console.log("exception error" + error);
+		} catch(err){}
+	});
+} catch(err) {
+	console.log("exception error" + err);
+}
 
 // start app
 $(document).on('ready',function(e){
@@ -300,7 +315,8 @@ function getMetadata(req,res){
             return;
         }
     }
-    var args = ['-show_streams',link];
+    var args = [link];
+    var error = false;
     if (process.platform === 'win32') {
         ffprobe = spawn(exec_path+'/ffprobe.exe', args);
     } else {
@@ -308,6 +324,12 @@ function getMetadata(req,res){
     }
     ffprobe.stderr.on('data', function(data) {
         var infos = data.toString();
+        if(infos.indexOf('453 Not Enough Bandwidth') !== -1) {
+            res.writeHead(400,{"Content-Type": "text/html"});
+            res.write("Pas assez de débit");
+            res.end();
+            error = true;
+        }
         try{
             if (resolution === '') {
                 var vinfos = infos.match(/Video:(.*)/)[1];
@@ -318,7 +340,11 @@ function getMetadata(req,res){
 
         }
     });
+    
     ffprobe.on('exit', function(data) {
+        if(error) {
+            return;
+        }
         console.log('[DEBUG] ffprobe exited...'+bitrate+' '+resolution);
         var width = 640;
         var height = 480;
@@ -421,6 +447,11 @@ function startStreaming(req,res,inwidth,inheight) {
         ffmpeg.stderr.on('data', function (data) {
             updateStats(data.toString(),swidth,sheight,bitrate);
             console.log(data.toString());
+            if(data.toString().indexOf('453 Not Enough Bandwidth') !== -1) {
+                res.writeHead(400,{"Content-Type": "text/html"});
+                res.write("Pas assez de débit");
+                res.end();
+            }
         });
 
         ffmpeg.on('error',function(e) {
@@ -506,7 +537,7 @@ function startUpnp() {
 	// start upnp port forwarding
 	upnp.searchGateway(timeout, function(err, gateway) {
 	 
-	  if (err) throw err;
+	  if (err) console.log(err);
 	  
 	  console.log("Found Gateway!");
 	  console.log("Fetching External IP ... ");
