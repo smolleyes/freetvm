@@ -57,6 +57,14 @@ body {
 	margin-right:5px ;
 }
 
+/** password **/
+#password {
+  position: absolute;
+  top: 80px;
+  width: 380px;
+  margin-left: 10px;
+}
+
 /** progress bar **/
 progress{
     display: inline-block;

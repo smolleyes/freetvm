@@ -1,14 +1,18 @@
 //node modules
 var fs = require('fs'),
     path = require('path'),
+    mkdirp = require('mkdirp'),
+    util = require('util'),
     http = require('http'),
     cpu = require('os-utils'),
     nodeip = require('node-ip'),
     deviceType = require('ua-device-type'),
     url = require('url'),
-    spawn = require('child_process').spawn;
-    upnp = require("upnp");
-    myIp = require("node-ip").address();
+    spawn = require('child_process').spawn,
+    upnp = require('upnp'),
+    myIp = require('node-ip').address(),
+    sudo = require('sudo'),
+    wintools;
 
 // node-webkit window
 var gui = require('nw.gui');
@@ -24,15 +28,19 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.2.2";
+VERSION="0.2.3";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
+var fn;
 var megaServer;
 var storage = localStorage;
 var settings = {};
 var ffmpeg;
 var ffar = [];
+var execDir = path.dirname(process.execPath);
+var osType = getOsType();
+var HOME = getUserHome();
 
 // Create a tray icon
 var tray = new gui.Tray({ title: 'FreeTvM-server', icon: 'img/icon.png' });
@@ -71,28 +79,83 @@ try {
 
 // start app
 $(document).on('ready',function(e){
+    
+    ////////////////////////////////////////
+    // start keyevent listener
+    fn = function(e){ onKeyPress(e); };
+    document.addEventListener("keydown", fn, false );
+    // remove listener if input focused
+    $('#inputPassword').focusin(function() {
+        document.removeEventListener("keydown",fn, false);
+    });
+    $('#inputPassword').focusout(function() {
+        document.addEventListener("keydown", fn, false );
+    }); 
+
+    /////////////////////////
+    // show/hide password
+    $(".reveal").mousedown(function() {
+        $(".pwd").replaceWith($('.pwd').clone().attr('type', 'text'));
+    })
+    .mouseup(function() {
+        $(".pwd").replaceWith($('.pwd').clone().attr('type', 'password'));
+    })
+    .mouseout(function() {
+        $(".pwd").replaceWith($('.pwd').clone().attr('type', 'password'));
+    });
+    // save password
+    var pass;
+    $('#savePassword').click(function(e){
+        var pass = $("#inputPassword").val();
+        var options = {
+            cachePassword: true,
+            prompt: 'password:',
+            spawnOptions: { /* other options for spawn */ }
+        };
+        //test a command
+        var child = sudo([ 'ls', '-l', '/tmp' ], options, pass);
+
+        child.on('exit',function(code) {
+            if(code === 0) {
+                alert('Commande sudo ok!');
+                settings.password = pass;
+                storage.ftvSettings = JSON.stringify(settings);
+                $("#password").hide();
+                $("#main").show();
+                // verify/create autostart file
+                createAutostart();
+            } else {
+                alert('Problème avec votre mot de passe, réessayez...');
+            }
+        })
+    });
+
     //load stored infos
     if (storage.ftvSettings === undefined) {
+        if (osType !== 'windows') {
+            askPassword();
+        }
         settings.ip = nodeip.address();
         settings.version = VERSION;
         settings.sharedFolders = [];
         storage.ftvSettings = JSON.stringify(settings);
     } else {
         settings = JSON.parse(storage.ftvSettings);
+        // verify password
+        if (osType !== 'windows') {
+			if (settings.password === undefined || settings.password === null) {
+				askPassword();
+			} else {
+				// verify/create autostart file
+				createAutostart();
+			}
+		}
     }
-    // check stored version
+    // check stored VERSION and update if necessary
     if(settings.version !== VERSION) {
-		settings.version = VERSION;
-		storage.ftvSettings = JSON.stringify(settings);
-	} 
-    
-    // start keyevent listener
-    fn = function(e){ onKeyPress(e); };
-    document.addEventListener("keydown", fn, false );
-    //start server
-    startMegaServer();
-    // show window when ready
-    winIshidden = false;
+        settings.version = VERSION;
+        storage.ftvSettings = JSON.stringify(settings);
+    }
 
     // collapsible div
     $(document).on('click', '.panel-heading span.clickable', function(e){
@@ -136,7 +199,107 @@ $(document).on('ready',function(e){
             $('#foldersList').empty().append('<li class="list-group-item">Aucun dossier partagé...</li>');
         }
     });
+
+    //start server
+    startMegaServer();
+    // show window when ready
+    winIshidden = false;
 });
+
+// get user HOMEDIR
+function getUserHome() {
+    return process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE;
+}
+
+//get os type
+function getOsType() {  
+    var arch = process.arch;
+    if (process.platform === 'win32') {
+        wintools = require('wintools');
+        return 'windows';
+    } else if (process.platform === 'darwin') {
+       return 'mac';
+    } else {
+        if (arch === 'ia32') {
+            return 'linux-32';
+        } else if (arch === 'x64') {
+            return 'linux-64';
+        }
+    }
+}
+
+// ask password function
+function askPassword() {
+    $('#main').hide();
+    $('#password').show();
+}
+
+// shutdown pc 
+function shutdown(res) {
+	console.log('shutdown asked');
+	if(osType !== 'windows') {
+		var options = {
+			cachePassword: true,
+			prompt: 'password:',
+			spawnOptions: { /* other options for spawn */ }
+		};
+		var child = sudo([ 'shutdown','-P','now' ], {}, settings.password);
+		child.on('exit',function(code) {
+			if(code === 0) {
+				res.writeHead(200,{'Content-type': 'text/html'});
+				res.write('ok');
+				res.end();
+			} else {
+				res.writeHead(200,{'Content-type': 'text/html'});
+				res.write('nok');
+				res.end();
+			}
+		});
+	} else {
+		wintools.shutdown.poweroff(function() {
+			res.writeHead(200,{'Content-type': 'text/html'});
+			res.write('ok');
+			res.end();
+		});
+	}
+}
+
+// create / add automatic startup file
+function createAutostart() {
+    if(osType === 'linux-32' || osType === 'linux-64') {
+        fs.exists(HOME+'/.config/autostart', function (exists) {
+            util.debug(exists ? createLinuxAutostart() : makeLinuxAutostartDir() );
+        });
+    } else if (osType === 'mac') {
+
+    } else {
+        alert('Os inconnu... impossible de créer le fichier de démarrage automatique!');
+    }
+}
+
+// make autostart dir
+function makeLinuxAutostartDir() {
+    mkdirp(HOME+'/.config/autostart', function(err) { 
+        if(err){
+            alert('Impossible de créer le dossier autostart '+HOME+'/.config/autostart');
+        } else {
+            console.log('Dossier autostart '+HOME+'/.config/autostart'+' crée avec succès');
+            createLinuxAutostart();
+        }   
+    });
+}
+
+//create linux autostart desktop file
+function createLinuxAutostart() {
+    console.log('creating desktop file');
+    fs.writeFile(HOME+'/.config/autostart/freetvm.desktop', '[Desktop Entry]\nType=Application\nExec='+execDir+'/freetvm\nHidden=false\nNoDisplay=false\nX-GNOME-Autostart-enabled=true\nName[fr_FR]=Freetvm\nName=Freetvm\nComment[fr_FR]=\nComment=\n', function(err) {
+        if(err) {
+            alert('Imopssible de créer le fichier autostart '+HOME+'/.config/autostart/freetvm.desktop');
+        } else {
+            console.log("freetvm.desktop file created!");
+        }
+    });
+}
 
 // open fileDialog and save result in localStorage
 function chooseFile(name) {
@@ -224,6 +387,10 @@ function startMegaServer() {
                 res.writeHead(200, {"Content-Type": 'text/html'});
                 res.write('ok!');
                 res.end();
+            } else if (req.url.indexOf("/shutdown") !== -1){
+                shutdown(res);
+            } else if (req.url.indexOf("/wakeup") !== -1){
+                wakeup(res);
             } else {
                 getMetadata(req,res);
                 //startStreaming(req,res);
