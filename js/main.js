@@ -12,6 +12,7 @@ var fs = require('fs'),
     upnp = require('upnp'),
     myIp = require('node-ip').address(),
     sudo = require('sudo'),
+	spawn = require('child_process').spawn,
     wintools;
 
 // node-webkit window
@@ -238,12 +239,17 @@ function askPassword() {
 function shutdown(res) {
 	console.log('shutdown asked');
 	if(osType !== 'windows') {
+		var child;
+		if(osType === "mac") {
+			child = sudo([ 'shutdown','-h','now' ], {}, settings.password);
+		} else {
+			child = sudo([ 'shutdown','-P','now' ], {}, settings.password);
+		}
 		var options = {
 			cachePassword: true,
 			prompt: 'password:',
 			spawnOptions: { /* other options for spawn */ }
 		};
-		var child = sudo([ 'shutdown','-P','now' ], {}, settings.password);
 		child.on('exit',function(code) {
 			if(code === 0) {
 				res.writeHead(200,{'Content-type': 'text/html'});
@@ -271,10 +277,48 @@ function createAutostart() {
             util.debug(exists ? createLinuxAutostart() : makeLinuxAutostartDir() );
         });
     } else if (osType === 'mac') {
-
+		var exec = require('child_process').exec;
+		var args = [ '-e', 'tell application "System Events" to get the name of every login item' ];
+		var child = exec('osascript -e \'tell application "System Events" to get the name of every login item\'', function (error, stdout, stderr) {
+    		console.log('autostart list:'+ stdout.trim());
+    		if (error === null) {
+			  if(stdout.trim() === '') {
+			  	 console.log('FreetvM autostart not created, creating...');
+				 createMacAutostart();
+			  } else if (stdout.indexOf('FreetvM-server') !== -1) {
+				console.log('Autostart already exist, delete...');
+				var args = [ '-e', 'tell application "System Events" to delete login item "FreetvM-server"' ];
+				var child = spawn('osascript', args);
+				child.on('exit',function(code) {
+					if(code === 0) {
+						console.log('Autostart deleted successfully');
+						//recreate new one
+						createMacAutostart();
+					} else {
+						alert('Impossible de créer le fichier de démarrage automatique de FreetvM-server');
+					}
+				});
+			  }
+    	  	} else {
+    	  		alert('Impossible de créer le fichier de démarrage automatique de FreetvM-server' + error);
+    	  	}
+		});
     } else {
         alert('Os inconnu... impossible de créer le fichier de démarrage automatique!');
     }
+}
+
+function createMacAutostart() {
+	var execPath = execDir.match(/(.*)FreetvM-server.app/)[0];
+	var args = [ '-e', 'tell application "System Events" to make login item at end with properties {path:"'+execPath+'", hidden:false}' ];
+	var child = spawn('osascript', args);
+	child.on('exit',function(code) {
+		if(code === 0) {
+			console.log('Autostart created successfully');
+		} else {
+			alert('Impossible de créer le fichier de démarrage automatique de FreetvM-server');
+		}
+	});
 }
 
 // make autostart dir
