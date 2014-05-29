@@ -43,6 +43,7 @@ var execDir = path.dirname(process.execPath);
 var osType = getOsType();
 var HOME = getUserHome();
 
+
 // Create a tray icon
 var tray = new gui.Tray({ title: 'FreeTvM-server', icon: 'img/icon.png' });
 
@@ -437,13 +438,12 @@ function startMegaServer() {
                 wakeup(res);
             } else {
                 getMetadata(req,res);
-                //startStreaming(req,res);
             }
         }
     }).listen(8888);
     $("#serverStateImg").attr('src','img/online.png');
     $("#serverState").empty().append('Serveur en écoute sur '+nodeip.address()+' port 8888'),
-    $("#ipLocale").empty().append('<b>Ip locale</b>: '+myIp);
+    $("#ipLocale").empty().append('<b>Ip locale: </b>'+myIp);
     }
 }
 
@@ -590,7 +590,7 @@ function startStreaming(req,res,inwidth,inheight) {
         } catch(err) {
             link = parsedLink.match(/\?file=(.*)/)[1].replace(/\+/g,' ');
         }
-        console.log("[DEBUG] Opening link: " + link)
+        console.log("[DEBUG] Opening link: " + link+ " req headers: "+req.headers)
         //get screen dimensions from request
         try {
             swidth = parseInt(linkParams.slice(-1)[0].replace('screen=',"").split('x')[0]);
@@ -686,9 +686,17 @@ function startStreaming(req,res,inwidth,inheight) {
 
 function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,exitCallback) {
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
-        args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', 'libopus','-b:a','256k','-threads', '0', '-'];
+        if(link.indexOf('rtsp://') === -1) {
+            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', 'libopus','-b:a','192k','-threads', '0', '-'];
+        } else {
+            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', 'libopus','-b:a','192k','-threads', '0', '-'];
+        }
     } else {
-        args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
+        if(link.indexOf('rtsp://') === -1) {
+            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
+        } else {
+            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
+        }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
     if (process.platform === 'win32') {
@@ -756,7 +764,7 @@ function startUpnp() {
 	  gateway.getExternalIP(function(err, ip) {
 	  
 		if (err) console.log(err);
-		$("#ipFreebox").empty().append('<b>Ip</b>:    ' +ip);
+		$("#ipFreebox").empty().append('<b>Ip publique: </b>    ' +ip);
 		
 		gateway.AddPortMapping(
 			"TCP"             // or "UDP"
