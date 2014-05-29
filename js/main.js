@@ -29,7 +29,7 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.2.3";
+VERSION="0.2.2";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
