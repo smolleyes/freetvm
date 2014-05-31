@@ -56,7 +56,7 @@ $(document).ready(function(){
                 console.log('linux 64 bits detected...');
                 file = 'freetvm-64.zip';
             }
-            link = 'http://sd-20470.dedibox.fr/ht5streamer/'+file;
+            link = 'http://sd-20470.dedibox.fr/freetvm/'+file;
         }
         downloadUpdate(link,file);
     });
@@ -79,7 +79,7 @@ function downloadUpdate(link,filename) {
 		$('#updateProgress strong').html("Impossible de télécharger la mise à jour...");
 		setTimeout(function(){pbar.hide()},5000);
     }
-    temp.mkdir('ht5streamer', function(err, dirPath) {
+    temp.mkdir('freetvm', function(err, dirPath) {
 	tmpPath = dirPath;
 	var target;
 	if (process.platform === 'win32') {
@@ -120,14 +120,14 @@ function downloadUpdate(link,filename) {
 		    	pbar.click();
 		    	$('.notification').click();
 		    	if (parseInt(data) == 0) {
-			    	$.notif({title: 'Ht5streamer:',cls:'green',timeout:10000,icon: '&#10003;',content:"Mise à jour installée avec succès! merci de relancer freeTv-M",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
+			    	$.notif({title: 'freetvm:',cls:'green',timeout:10000,icon: '&#10003;',content:"Mise à jour installée avec succès! merci de relancer freeTv-M",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
 		    	} else {
-			    	$.notif({title: 'Ht5streamer:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
+			    	$.notif({title: 'freetvm:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
 		    	}
 	    	});
 	    	update.stderr.on('data', function(data) {
 		    	$('.notification').click();
-		    	$.notif({title: 'Ht5streamer:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!" + data,btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
+		    	$.notif({title: 'freetvm:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!" + data,btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
 		    	console.log('update stderr: ' + data);
 	    	});
  	    } else {
@@ -137,14 +137,14 @@ function downloadUpdate(link,filename) {
 		    	pbar.click();
 		    	$('.notification').click();
 		    	if (parseInt(data) == 0) {
-			    	$.notif({title: 'Ht5streamer:',cls:'green',timeout:10000,icon: '&#10003;',content:"Mise à jour installée avec succès! merci de relancer freeTv-M",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
+			    	$.notif({title: 'freetvm:',cls:'green',timeout:10000,icon: '&#10003;',content:"Mise à jour installée avec succès! merci de relancer freeTv-M",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
 		    	} else {
-			    	$.notif({title: 'Ht5streamer:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
+			    	$.notif({title: 'freetvm:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
 		    	}
 	    	});
 	    	update.stderr.on('data', function(data) {
 		    	$('.notification').click();
-		    	$.notif({title: 'Ht5streamer:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
+		    	$.notif({title: 'freetvm:',cls:'red',timeout:10000,icon: '&#10006;',content:"Erreur de mise à jour, merci de remonter le problème... essayez de reinstaller manuellement!",btnId:'',btnTitle:'',btnColor:'',btnDisplay: 'none',updateDisplay:'none'});
 		    	console.log('update stderr: ' + data);
 	    	});
 		}

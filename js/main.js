@@ -386,7 +386,7 @@ function startMegaServer() {
                 json.channels = [];
                 var canalArr = [];
                 var fChannels = [];
-                $.get('http://mafreebox.freebox.fr/freeboxtv/playlist.m3u',function(resp){
+                $.get('http://freebox-server.local/freeboxtv/playlist.m3u',function(resp){
                   var list = resp.split('#EXTINF');
                   $.each(list,function(index,c){
                     var chaine = c.trim().replace(/(\r\n|\n|\r)/gm,"");
