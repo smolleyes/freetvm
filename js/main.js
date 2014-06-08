@@ -12,8 +12,12 @@ var fs = require('fs'),
     upnp = require('upnp'),
     myIp = require('node-ip').address(),
     sudo = require('sudo'),
-	spawn = require('child_process').spawn,
-    wintools;
+    spawn = require('child_process').spawn,
+    wintools,
+    upnpClient = require('upnp-client'),
+    cli = new upnpClient(),
+    _ = require('underscore'),
+    parseString = require('xml2js').parseString;
 
 // node-webkit window
 var gui = require('nw.gui');
@@ -23,6 +27,7 @@ win.on('loaded', function() {
     this.show();
     this.setPosition("center");
     startUpnp();
+    cli.searchDevices();
 });
 
 //set default timout
@@ -426,6 +431,17 @@ function startMegaServer() {
                     }
                  });
               });
+            } else if (req.url.indexOf("/getUpnpServers") !== -1){
+              $.each(cli._servers,function(index,server) {
+                  res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                  var body = JSON.stringify(cli._servers);
+                  res.end(body)
+              });
+            } else if (req.url.indexOf("/loadUpnpFiles") !== -1){
+              var params = decodeURIComponent(req.url.split('?')[1]);
+              var serverId = params.split('&')[0].replace('server=','');
+              var fileIndex = params.split('&')[1].replace('index=','');
+              browseUpnpDir(serverId,fileIndex,res);
             } else if (req.url.indexOf("/getLocalDbJson") !== -1){
                 getLocalDb(res);
             } else if (req.url.indexOf("/test") !== -1){
@@ -687,15 +703,15 @@ function startStreaming(req,res,inwidth,inheight) {
 function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,exitCallback) {
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'medium','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
+            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
         } else {
-            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'medium','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
+            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
         }
     } else {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'medium','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','96k','-threads', '0', '-'];
+            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','96k','-threads', '0', '-'];
         } else {
-            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'medium','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
+            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
         }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
@@ -789,3 +805,158 @@ function startUpnp() {
 	  
 	});
 }
+
+
+function browseUpnpDir(serverId,indexId,res) {
+  
+  mediaServer = new Plug.UPnP_ContentDirectory( cli._servers[serverId], { debug: false } );
+  mediaServer.index = serverId;
+  
+  mediaServer.browse(indexId, null, null, 0, 1000, null).then(function(response) {
+      if (response && response.data) {
+        try {
+          var xml = encodeXML(response.data.Result);
+          var channels = [];
+          parseString(xml, function (err, result) {
+              console.log(result)
+              var dirs = undefined;
+              try {
+                dirs = result['DIDL-Lite']['container'];
+              } catch(err){}
+              var items = undefined;
+              try {
+                items = result['DIDL-Lite']['item'];
+              } catch(err){}
+              if(items === undefined && dirs === undefined) {
+                  res.writeHead(200, {"Content-Type": 'text/html'});
+                  res.write('no files');
+                  res.end();
+              }
+              $('#items_container').empty().show();
+              if (items) {
+                  $.each(items,function(index,dir){
+                    var uclass;
+                    if(dir['upnp:class'][0].indexOf('object.container') !== -1){
+                      var obj = dir['$'];
+                      obj.serverId = serverId;
+                      var html = '<div data-role="collapsible" class="upnpFolder" data-collapsed="true" data-mini="true" data="'+encodeURIComponent(JSON.stringify(obj))+'"><h3>'+dir["dc:title"]+'</h3></div>';
+                      var channel = {};
+                      channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
+                      channel.data = html;
+                      channels.push(channel);
+                    } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
+                        var uclass="tvLink";
+                        var html = '<a style="calc(100% - 28px) !important;" data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        var channel = {};
+                        channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
+                        channel.data = html;
+                        channels.push(channel);
+                    }
+                    console.log(index+1, items.length)
+                    if(index+1 === items.length) {
+                      if(dirs) {
+                        $.each(dirs,function(index,dir){
+                          var uclass;
+                          if(dir['upnp:class'][0].indexOf('object.container') !== -1){
+                            var obj = dir.$;
+                            var obj = dir['$'];
+                            obj.serverId = serverId;
+                            var html = '<div data-role="collapsible" class="upnpFolder" data-collapsed="true" data-mini="true" data="'+encodeURIComponent(JSON.stringify(obj))+'"><h3>'+dir["dc:title"]+'</h3></div>';
+                            var channel = {};
+                            channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
+                            channel.data = html;
+                            channels.push(channel);
+                          } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
+                              var uclass="tvLink";
+                              var html = '<a style="calc(100% - 28px) !important;" data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                              var channel = {};
+                              channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
+                              channel.data = html;
+                              channels.push(channel);
+                          }
+                          if(index+1 === dirs.length) {
+                            console.log(channels);
+                            var sorted = _.sortBy(channels, 'num');
+                            var body = JSON.stringify(sorted);
+                            res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                            res.end(body);
+                            //$.each(sorted,function(index,chan){
+                                //$('#items_container').append(chan.data);
+                            //})
+                          }
+                      });
+                    } else {
+                        var sorted = _.sortBy(channels, 'num');
+                        var body = JSON.stringify(sorted);
+                        res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                        res.end(body);
+                    }
+                  }
+                });
+              } else {
+                if(dirs) {
+                  $.each(dirs,function(index,dir){
+                    console.log(dir)
+                    var uclass;
+                   if(dir['upnp:class'][0].indexOf('object.container') !== -1){
+                      var obj = dir['$'];
+                      obj.serverId = serverId;
+                      console.log(obj)
+                      var html = '<div data-role="collapsible" class="upnpFolder" data-collapsed="true" data-mini="true" data="'+encodeURIComponent(JSON.stringify(obj))+'"><h3>'+dir["dc:title"]+'</h3></div>';
+                      var channel = {};
+                      channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
+                      channel.data = html;
+                      channels.push(channel);
+                    } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
+                        var uclass="tvLink";
+                        var html = '<a style="calc(100% - 28px) !important;" data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        var channel = {};
+                        channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
+                        channel.data = html;
+                        channels.push(channel);
+                    }
+                    console.log(index+1, dirs.length)
+                    if(index+1 === dirs.length) {
+                        var sorted = _.sortBy(channels, 'num');
+                        var body = JSON.stringify(sorted);
+                        res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                        res.end(body);
+                    }
+                });
+              }
+            }
+          });
+        } catch(err) {
+          console.log("ERRORRRRRR "+ err)
+          }
+      } else {
+          console.log("no response")
+      }
+      
+  }).then( null, function( error ) { // Handle any errors
+  
+      debugLog( "An error occurred: " + error.description );
+  
+  });
+}
+
+var decodeUri = function(uri) {
+  if(uri.match(/\/%25\//) !== null) {
+    uri = uri.replace(/\/%25\//g,'/');
+  }
+  if(uri.match(/%2525/) !== null){
+    uri = uri.replace(/%2525/g,'%');
+  }
+  if(uri.match(/%25/) !== null) {
+    uri = uri.replace(/%25/g,'%');
+  }
+  // test double http
+  if(uri.match(/http/g).length > 1 ) {
+    uri = "http://"+uri.split('http').pop();
+  }
+  return encodeXML(uri);
+}
+
+var encodeXML = function ( str ) {
+    return str.replace(/\&/g, '&amp;')
+};
