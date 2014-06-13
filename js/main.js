@@ -17,6 +17,8 @@ var fs = require('fs'),
     upnpClient = require('upnp-client'),
     cli = new upnpClient(),
     _ = require('underscore'),
+    temp = require('temp'),
+    request = require('request'),
     parseString = require('xml2js').parseString;
 
 // node-webkit window
@@ -483,6 +485,11 @@ function startMegaServer() {
               var serverId = params.split('&')[0].replace('server=','');
               var fileIndex = params.split('&')[1].replace('index=','');
               browseUpnpDir(serverId,fileIndex,res);
+            } else if (req.url.indexOf("/getFile") !== -1){
+                var link = decodeURIComponent(req.url.split('link=')[1]);
+                r = request(decodeURIComponent(link)).on('response',function(response) {
+                    response.pipe(res);
+                });
             } else if (req.url.indexOf("/getLocalDbJson") !== -1){
                 res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                 getLocalDb(res);
@@ -893,6 +900,9 @@ function browseUpnpDir(serverId,indexId,res) {
                         if(dir['upnp:class'][0] === "object.item.imageItem") {
                           var uclass="upnpImage";
                           var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        } else if (dir['upnp:class'][0] === "object.item.textItem") {
+                          var uclass="upnpText";
+                          var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
                         } else {
                           var uclass="tvLink";
                           var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
@@ -918,6 +928,9 @@ function browseUpnpDir(serverId,indexId,res) {
                           } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
                               if(dir['upnp:class'][0] === "object.item.imageItem") {
                                 var uclass="upnpImage";
+                                var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                              } else if (dir['upnp:class'][0] === "object.item.textItem") {
+                                var uclass="upnpText";
                                 var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
                               } else {
                                 var uclass="tvLink";
@@ -960,6 +973,9 @@ function browseUpnpDir(serverId,indexId,res) {
                     } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
                         if(dir['upnp:class'][0] === "object.item.imageItem") {
                           var uclass="upnpImage";
+                          var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        } else if (dir['upnp:class'][0] === "object.item.textItem") {
+                          var uclass="upnpText";
                           var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
                         } else {
                           var uclass="tvLink";
