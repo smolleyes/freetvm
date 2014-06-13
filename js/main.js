@@ -26,7 +26,6 @@ win.setResizable(false);
 win.on('loaded', function() {
     this.show();
     this.setPosition("center");
-    startUpnp();
     cli.searchDevices();
 });
 
@@ -47,7 +46,6 @@ var ffar = [];
 var execDir = path.dirname(process.execPath);
 var osType = getOsType();
 var HOME = getUserHome();
-
 
 // Create a tray icon
 var tray = new gui.Tray({ title: 'FreeTvM-server', icon: 'img/icon.png' });
@@ -142,6 +140,7 @@ $(document).on('ready',function(e){
         if (osType !== 'windows') {
             askPassword();
         }
+        testFbxVersion(false);
         settings.ip = nodeip.address();
         settings.version = VERSION;
         settings.sharedFolders = [];
@@ -150,14 +149,16 @@ $(document).on('ready',function(e){
         settings = JSON.parse(storage.ftvSettings);
         // verify password
         if (osType !== 'windows') {
-			if (settings.password === undefined || settings.password === null) {
-				askPassword();
-			} else {
-				// verify/create autostart file
-				createAutostart();
-			}
-		}
+          if (settings.password === undefined || settings.password === null) {
+            askPassword();
+          } else {
+            // verify/create autostart file
+            createAutostart();
+          }
+        }
+        testFbxVersion(true);
     }
+    
     // check stored VERSION and update if necessary
     if(settings.version !== VERSION) {
         settings.version = VERSION;
@@ -206,12 +207,51 @@ $(document).on('ready',function(e){
             $('#foldersList').empty().append('<li class="list-group-item">Aucun dossier partagé...</li>');
         }
     });
+    
+    //fbxv5 config 
+   $(document).on("click","#showFbxConfigLink",function(){
+      console.log('clicked')
+      gui.Shell.openExternal("http://www.dslvalley.com/dossiers/freebox/freebox-nat.php")
+    });
 
     //start server
     startMegaServer();
     // show window when ready
     winIshidden = false;
 });
+
+// test fbx version
+function testFbxVersion(init) {
+    $.get('http://mafreebox.freebox.fr',function(res){
+      var verif = res.match(/Freebox OS/);
+      if(verif !== null) {
+        settings.fbxVersion = 'V6';
+        storage.ftvSettings = JSON.stringify(settings);
+        //start upnpIGD config
+        startUpnp();
+      } else {
+        settings.fbxVersion = 'V5';
+        storage.ftvSettings = JSON.stringify(settings);
+        // show ip settings if fbx V5
+        if(!init){
+            $('#v5Container').append('<p>Vous devez configurer une redirection du <b>port 8888 en tcp sur l\'ip '+myIp+'</b> sur votre console de gestion free.<br> si vous ne savez pas comment faire suivez la procèdure indiquée <a id="showFbxConfigLink" href="#" >ici</a></p>');
+            $('#fbxV5Config').show();
+        }
+        // get public ip
+        $.getJSON('http://www.realip.info/api/realip.php',function(res){
+            settings.publicIp = res.IP;
+            storage.ftvSettings = JSON.stringify(settings);
+            $("#ipFreebox").empty().append('<b>Ip publique: </b>    ' +settings.publicIp);
+        }).error(function(res){
+            alert('http://whatsmyip.org est inaccessible, vérifiez votre connexion...');
+            return;
+        });
+      }
+    }).error(function(res){
+      alert('http://mafreebox.freebox.fr est inaccessible, vérifiez votre connexion...');
+      return;
+    });
+}
 
 // get user HOMEDIR
 function getUserHome() {
@@ -383,7 +423,7 @@ function startMegaServer() {
         megaServer.close();
     } catch(err) {
     megaServer = http.createServer(function (req, res) {
-        console.log("[DEBUG] request received : "+decodeURIComponent(req.url)+"\n");
+        console.log("[DEBUG] request received : "+req.url+"\n");
         if((req.url !== "/favicon.ico") && (req.url !== "/")) {
             if (req.url.indexOf("/getPlaylist") !== -1) {
                 var html="";
@@ -415,14 +455,15 @@ function startMegaServer() {
                                   if($.inArray(channel.canal,canalArr) === -1) {
                                       json.channels.push(channel);
                                       if (index2+1 == fChannels.length) {
-                                          var body = JSON.stringify(json);
-                                          res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                                          var list = _.sortBy(json.channels, function(obj){ return parseInt(obj.canal) });
+                                          var body = JSON.stringify({"channels":list});
+                                          res.writeHead(200, {"Content-Type": "application/json;charset=utf-8",'Access-Control-Allow-Origin' : '*'});
                                           res.end(body);
                                       }
                                   }
                               });
                         } else {
-                              res.writeHead(200,{'Content-type': 'text/html'});
+                              res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                               res.end(html, 'utf-8');
                         }
                       }
@@ -433,7 +474,7 @@ function startMegaServer() {
               });
             } else if (req.url.indexOf("/getUpnpServers") !== -1){
               $.each(cli._servers,function(index,server) {
-                  res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                  res.writeHead(200, {"Content-Type": "application/json;charset=utf-8",'Access-Control-Allow-Origin' : '*'});
                   var body = JSON.stringify(cli._servers);
                   res.end(body)
               });
@@ -443,14 +484,18 @@ function startMegaServer() {
               var fileIndex = params.split('&')[1].replace('index=','');
               browseUpnpDir(serverId,fileIndex,res);
             } else if (req.url.indexOf("/getLocalDbJson") !== -1){
+                res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                 getLocalDb(res);
             } else if (req.url.indexOf("/test") !== -1){
-                res.writeHead(200, {"Content-Type": 'text/html'});
-                res.write('ok!');
-                res.end();
+                res.writeHead(200, {"Content-Type": 'application/json;charset=utf-8','Access-Control-Allow-Origin' : '*'});
+                var obj = {"success":true,"ipLocale":myIp,"ipFbx":settings.publicIp};
+                var body = JSON.stringify(obj);
+                res.end(body);
             } else if (req.url.indexOf("/shutdown") !== -1){
+                res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                 shutdown(res);
             } else if (req.url.indexOf("/wakeup") !== -1){
+                res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                 wakeup(res);
             } else {
                 getMetadata(req,res);
@@ -460,7 +505,7 @@ function startMegaServer() {
     $("#serverStateImg").attr('src','img/online.png');
     $("#serverState").empty().append('Serveur en écoute sur '+nodeip.address()+' port 8888'),
     $("#ipLocale").empty().append('<b>Ip locale: </b>'+myIp);
-    }
+  }
 }
 
 
@@ -471,14 +516,14 @@ function getLocalDb(res) {
     try {
         var dirs = settings.sharedFolders;
         if ((dirs === undefined) || (dirs.length === 0)) {
-            res.writeHead(200, {"Content-Type": "text/html;"});
+            res.writeHead(200, {"Content-Type": "text/html;",'Access-Control-Allow-Origin' : '*'});
             res.write('no share');
             res.end();
             return;
         }
     } catch(err) {
         console.log("shared dirs error : "+ err);
-        res.writeHead(200, {"Content-Type": "text/html;"});
+        res.writeHead(200, {"Content-Type": "text/html;",'Access-Control-Allow-Origin' : '*'});
         res.write('no share');
         res.end();
         return;
@@ -489,7 +534,7 @@ function getLocalDb(res) {
         if (dir === "") {
             if (index+1 === dirs.length) {
                 var body = JSON.stringify(fileList);
-                res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                res.writeHead(200, {"Content-Type": "application/json;charset=utf-8",'Access-Control-Allow-Origin' : '*'});
                 res.end(body);
             }
             return true;
@@ -497,7 +542,7 @@ function getLocalDb(res) {
             fileList.push(dirTree(dir));
             if (index+1 === dirs.length) {
                 var body = JSON.stringify(fileList);
-                res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                res.writeHead(200, {"Content-Type": "application/json;charset=utf-8",'Access-Control-Allow-Origin' : '*'});
                 res.end(body);
             }
         }
@@ -542,6 +587,7 @@ function getMetadata(req,res){
             return;
         }
     }
+    //var args = ['-show_streams','-print_format','json',link];
     var args = [link];
     var error = false;
     if (process.platform === 'win32') {
@@ -602,11 +648,11 @@ function startStreaming(req,res,inwidth,inheight) {
         var args;
         //get link
         try {
-            link = parsedLink.match(/\?file=(.*?)&tv/)[1].replace(/\+/g,' ');
+            link = parsedLink.match(/\?file=(.*?)&tv/)[1].replace(/&apos;/g,'\'');
         } catch(err) {
-            link = parsedLink.match(/\?file=(.*)/)[1].replace(/\+/g,' ');
+            link = parsedLink.match(/\?file=(.*)/)[1].replace(/&apos;/g,'\'');
         }
-        console.log("[DEBUG] Opening link: " + link+ " req headers: "+req.headers)
+        console.log("[DEBUG] Opening link: " + link.replace(/&apos;/g,'\'')+ " req headers: "+req.headers)
         //get screen dimensions from request
         try {
             swidth = parseInt(linkParams.slice(-1)[0].replace('screen=',"").split('x')[0]);
@@ -703,15 +749,15 @@ function startStreaming(req,res,inwidth,inheight) {
 function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,exitCallback) {
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
         } else {
-            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
         }
     } else {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','96k','-threads', '0', '-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','96k','-threads', '0', '-'];
         } else {
-            args = ['-i',link,'-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
         }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
@@ -793,7 +839,7 @@ function startUpnp() {
 		  if (err) alert('Impossible d\'activer la redirection de port, merci d\'activer l\'upnpIGD sur votre freebox!');
 		  //verify access
 		  $.get('http://'+myIp+':8888/test',function(res){
-			if(res !== 'ok!') {
+			if(!res.success) {
 				alert("pas d'accès exterieur à votre freebox, merci de vérifier vos firewalls etc... (autoriser port 8888 en tcp)");
 			} else {
 				console.log("Accès exterieur ok!")
@@ -812,13 +858,12 @@ function browseUpnpDir(serverId,indexId,res) {
   mediaServer = new Plug.UPnP_ContentDirectory( cli._servers[serverId], { debug: false } );
   mediaServer.index = serverId;
   
-  mediaServer.browse(indexId, null, null, 0, 1000, null).then(function(response) {
+  mediaServer.browse(decodeURIComponent(indexId), null, null, 0, 1000, null).then(function(response) {
       if (response && response.data) {
         try {
           var xml = encodeXML(response.data.Result);
           var channels = [];
           parseString(xml, function (err, result) {
-              console.log(result)
               var dirs = undefined;
               try {
                 dirs = result['DIDL-Lite']['container'];
@@ -828,7 +873,7 @@ function browseUpnpDir(serverId,indexId,res) {
                 items = result['DIDL-Lite']['item'];
               } catch(err){}
               if(items === undefined && dirs === undefined) {
-                  res.writeHead(200, {"Content-Type": 'text/html'});
+                  res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                   res.write('no files');
                   res.end();
               }
@@ -845,14 +890,18 @@ function browseUpnpDir(serverId,indexId,res) {
                       channel.data = html;
                       channels.push(channel);
                     } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
-                        var uclass="tvLink";
-                        var html = '<a style="calc(100% - 28px) !important;" data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        if(dir['upnp:class'][0] === "object.item.imageItem") {
+                          var uclass="upnpImage";
+                          var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        } else {
+                          var uclass="tvLink";
+                          var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        }
                         var channel = {};
                         channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
                         channel.data = html;
                         channels.push(channel);
                     }
-                    console.log(index+1, items.length)
                     if(index+1 === items.length) {
                       if(dirs) {
                         $.each(dirs,function(index,dir){
@@ -867,28 +916,29 @@ function browseUpnpDir(serverId,indexId,res) {
                             channel.data = html;
                             channels.push(channel);
                           } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
-                              var uclass="tvLink";
-                              var html = '<a style="calc(100% - 28px) !important;" data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                              if(dir['upnp:class'][0] === "object.item.imageItem") {
+                                var uclass="upnpImage";
+                                var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                              } else {
+                                var uclass="tvLink";
+                                var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                              }
                               var channel = {};
                               channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
                               channel.data = html;
                               channels.push(channel);
                           }
                           if(index+1 === dirs.length) {
-                            console.log(channels);
                             var sorted = _.sortBy(channels, 'num');
                             var body = JSON.stringify(sorted);
-                            res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                            res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                             res.end(body);
-                            //$.each(sorted,function(index,chan){
-                                //$('#items_container').append(chan.data);
-                            //})
                           }
                       });
                     } else {
                         var sorted = _.sortBy(channels, 'num');
                         var body = JSON.stringify(sorted);
-                        res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                        res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                         res.end(body);
                     }
                   }
@@ -908,8 +958,13 @@ function browseUpnpDir(serverId,indexId,res) {
                       channel.data = html;
                       channels.push(channel);
                     } else if(dir['upnp:class'][0].indexOf('object.item') !== -1) {
-                        var uclass="tvLink";
-                        var html = '<a style="calc(100% - 28px) !important;" data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        if(dir['upnp:class'][0] === "object.item.imageItem") {
+                          var uclass="upnpImage";
+                          var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        } else {
+                          var uclass="tvLink";
+                          var html = '<a data-role="button" data-mini="true" role="button" href="#" src="'+decodeUri(dir["res"][0]["_"])+'" class="'+uclass+'" data="'+encodeURIComponent(JSON.stringify(dir.$))+'">'+dir['dc:title'][0]+'</a>';
+                        }
                         var channel = {};
                         channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
                         channel.data = html;
@@ -919,7 +974,7 @@ function browseUpnpDir(serverId,indexId,res) {
                     if(index+1 === dirs.length) {
                         var sorted = _.sortBy(channels, 'num');
                         var body = JSON.stringify(sorted);
-                        res.writeHead(200, {"Content-Type": "application/json;charset=utf-8"});
+                        res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
                         res.end(body);
                     }
                 });
@@ -939,6 +994,7 @@ function browseUpnpDir(serverId,indexId,res) {
   
   });
 }
+
 
 var decodeUri = function(uri) {
   if(uri.match(/\/%25\//) !== null) {
