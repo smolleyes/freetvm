@@ -681,6 +681,14 @@ function startStreaming(req,res,inwidth,inheight) {
             }
             console.log("[DEBUG] Bitrate:" + bitrate + "k");
         }
+        // get airmedia
+        if (parsedLink.indexOf('&airmedia') !== -1){
+              isAirMediaLink = true;
+              link = link.replace('&airmedia','');
+              console.log("[DEBUG] sending to Freebox thru airmedia");
+        } else {
+              isAirMediaLink = false;
+        }
         // set response headers
         res.writeHead(200, {
             'Connection':'keep-alive',
@@ -694,7 +702,7 @@ function startStreaming(req,res,inwidth,inheight) {
                 'Content-Type': 'video/mp4'
             });
             var link = link.replace('file://','');
-            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,function (code) { // exit
+            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
               $("#serverStats").empty().append("<span>ERREUR FFMPEG:<br>"+e+"</span>");
               res.end();
             });
@@ -709,7 +717,7 @@ function startStreaming(req,res,inwidth,inheight) {
             ffmpeg.stdout.pipe(res);
         } else {
             // start ffmpeg
-            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,function (code) { // exit
+            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
                 res.end();
             });
             ffmpeg.stdout.pipe(res);
@@ -753,18 +761,23 @@ function startStreaming(req,res,inwidth,inheight) {
     });
 }
 
-function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,exitCallback) {
+function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallback) {
+    var audio = 'libopus';
+    if(airmedia) {
+        audio = 'libfaac';
+        bitrate = 0;
+    }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','192k','-threads', '0', '-'];
         } else {
-            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','128k','-threads', '0', '-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-'];
         }
     } else {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','96k','-threads', '0', '-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0', '-'];
         } else {
-            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', 'libopus','-b:a','64k','-threads', '0', '-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-'];
         }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
