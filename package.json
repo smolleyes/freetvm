@@ -3,7 +3,7 @@
   "main": "index.html",
   "window": {
     "frame": true,
-    "toolbar": false,
+    "toolbar": true,
     "position": "center",
     "title": "freeTvM-server",
     "width": 400,

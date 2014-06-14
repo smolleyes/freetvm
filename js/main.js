@@ -762,9 +762,8 @@ function startStreaming(req,res,inwidth,inheight) {
 }
 
 function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallback) {
-    var audio = 'libopus';
+    var audio = 'libfaac';
     if(airmedia) {
-        audio = 'libfaac';
         bitrate = 0;
     }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
@@ -775,9 +774,9 @@ function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallba
         }
     } else {
         if(link.indexOf('rtsp://') === -1) {
-            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0', '-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-'];
         } else {
-            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k","-bufsize",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0', '-'];
         }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
