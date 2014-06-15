@@ -769,7 +769,7 @@ function startStreaming(req,res,inwidth,inheight) {
 function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallback) {
     var audio = 'libopus';
     if(airmedia) {
-      audio = 'libfaac';
+      audio = 'libvorbis';
       bitrate = 0;
     }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
