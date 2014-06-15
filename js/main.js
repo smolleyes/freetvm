@@ -773,13 +773,13 @@ function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallba
       bitrate = 0;
     }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
-        if(link.indexOf('rtsp://') === -1) {
+        if(link.indexOf('stream?') === -1) {
             args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','192k','-threads', '0', '-'];
         } else {
             args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset',"-x264opts", "repeat-headers=1", 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-'];
         }
     } else {
-        if(link.indexOf('rtsp://') === -1) {
+        if(link.indexOf('stream?') === -1) {
             args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0', '-'];
         } else {
             args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-'];
