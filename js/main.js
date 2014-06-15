@@ -689,7 +689,7 @@ function startStreaming(req,res,inwidth,inheight) {
         // get airmedia
         if (parsedLink.indexOf('&airmedia') !== -1){
               isAirMediaLink = true;
-              link = link.replace('&airmedia','');
+              var link = link.replace('&airmedia','');
               console.log("[DEBUG] sending to Freebox thru airmedia");
         } else {
               isAirMediaLink = false;
