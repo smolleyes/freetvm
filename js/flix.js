@@ -208,8 +208,11 @@ function handleTorrent(torrent, stateModel, res) {
       item.name = videoStreamer.files[0].name;
       item.obj = videoStreamer;
       torrentsArr.push(item);
-      res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
-      res.end('http://'+myIp+':' + videoStreamer.server.address().port + '/', 'utf-8');
+      var obj = {};
+      obj.link = 'http://'+myIp+':' + videoStreamer.server.address().port + '/';
+      obj.title = videoStreamer.files[0].name;
+      res.writeHead(200,{'Content-type': 'application/json','Access-Control-Allow-Origin' : '*'});
+      res.end(JSON.stringify(obj));
 
       // TEST for custom NW
       //streamInfo.set('type', mime.lookup(videoStreamer.server.index.name));
