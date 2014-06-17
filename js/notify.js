@@ -44,10 +44,10 @@ $(document).ready(function(){
         var link = '';
         if (process.platform === 'win32') {
             file = 'freetvm-setup.exe';
-            link = 'http://sd-20470.dedibox.fr/freetv/windows/'+file;
+            link = 'http://sd-20470.dedibox.fr/freetvm/windows/'+file;
 		} else if (process.platform === 'darwin') {
 			 file = 'freetvm-osx.zip';
-			 link = 'http://www.ubukey.fr/freetvm/osx/'+file;
+			 link = 'http://sd-20470.dedibox.fr/freetvm/osx/'+file;
         } else {
             if (arch === 'ia32') {
                 console.log('linux 32 bits detected...');

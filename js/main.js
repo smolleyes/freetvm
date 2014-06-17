@@ -35,7 +35,7 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.5";
+VERSION="0.5.1";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
@@ -240,12 +240,12 @@ function testFbxVersion(init) {
             $('#fbxV5Config').show();
         }
         // get public ip
-        $.getJSON('http://www.realip.info/api/realip.php',function(res){
-            settings.publicIp = res.IP;
+        $.getJSON('http://ip-api.com/json',function(res){
+            settings.publicIp = res.query;
             storage.ftvSettings = JSON.stringify(settings);
             $("#ipFreebox").empty().append('<b>Ip publique: </b>    ' +settings.publicIp);
         }).error(function(res){
-            alert('http://whatsmyip.org est inaccessible, vérifiez votre connexion...');
+            alert('http://ip-api.com/json inaccessible, vérifiez votre connexion...');
             return;
         });
       }
@@ -441,7 +441,12 @@ function startMegaServer() {
                     try {
                         infos.canal = chaine.split(" ")[0].split(",")[1];
                         infos.link = 'rtsp://'+chaine.match(/rtsp:\/\/(.*)/)[1];
-                        var n = chaine.match(/(.*?)-(.*?)\)/)[2]+(')');
+                        var n;
+						if(settings.fbxVersion ==='V6'){
+							n = chaine.match(/(.*?)-(.*?)\)/)[2]+(')');
+						  } else {
+							n = chaine.match(/(.*?)- (.*?)rtsp/)[2];
+						}
                         infos.name = n.trim();
                         infos.thumb = 'img/fbxLogos/'+infos.canal+'.png';
                         if(infos.name.indexOf('(auto)') !== -1 || infos.name.indexOf('(TNT)') !== -1) {
