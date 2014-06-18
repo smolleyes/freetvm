@@ -44,6 +44,7 @@ function getTorrent(link,res) {
   stateModel = {state: 'connecting', backdrop: '',numTry: 0};
   streamInfo = {};
   var readTorrent = require('read-torrent');
+  alert('torrent link : {'+link+'}');
   readTorrent(link, function(err, torrent) {
       if(err) {
          console.log(err);

@@ -77,7 +77,7 @@ try {
 	process.on('uncaughtException', function(err) {
 		try{
 			var error = err.stack;
-      console.log("exception error" + error);
+			console.log("exception error" + error);
 		} catch(err){}
 	});
 } catch(err) {
