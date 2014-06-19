@@ -785,15 +785,15 @@ function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallba
     }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
         if(playFromHd) {
-            args = ['-probesize', '100000000', '-analyzeduration', '100000000', '-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','192k','-threads', '0', '-movflags', 'faststart','-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','192k','-threads', '0', '-movflags', 'faststart','-'];
         } else {
-            args = ['-probesize', '100000000', '-analyzeduration', '100000000','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset',"-x264opts", "repeat-headers=1", 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-movflags', 'faststart','-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset',"-x264opts", "repeat-headers=1", 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-movflags', 'faststart','-'];
         }
     } else {
         if(playFromHd) {
-            args = ['-probesize', '100000000', '-analyzeduration', '100000000','-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0','-movflags', 'faststart', '-'];
+            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0','-movflags', 'faststart', '-'];
         } else {
-            args = ['-probesize', '100000000', '-analyzeduration', '100000000','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-movflags', 'faststart','-'];
+            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-movflags', 'faststart','-'];
         }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
