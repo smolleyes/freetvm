@@ -785,15 +785,15 @@ function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallba
     }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
         if(playFromHd) {
-            args = ['-re','-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', 'libopus', '-compression_level', '7','-application', 'lowdelay', '-b:a', '64k', '-threads', '0','-'];
+            args = ['-re','-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', ''+audio+'', '-b:a', '64k', '-threads', '0','-'];
         } else {
-            args = ['-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', 'libopus', '-compression_level', '7','-application', 'lowdelay', '-b:a', '128k', '-threads', '0','-'];
+            args = ['-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', ''+audio+'', '-b:a', '128k', '-threads', '0','-'];
         }
     } else {
         if(playFromHd) {
-            args = ['-re','-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', 'libopus', '-compression_level', '7','-application', 'lowdelay', '-b:a', '96k', '-threads', '0','-'];
+            args = ['-re','-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', ''+audio+'', '-b:a', '96k', '-threads', '0','-'];
         } else {
-			args = ['-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', 'libopus', '-compression_level', '7','-application', 'lowdelay', '-b:a', '64k', '-threads', '0','-'];
+			args = ['-i', ''+link+'','-f', 'matroska','-sn', '-c:v', 'libx264', '-r', '25', '-b:v', ''+bitrate+'k', '-bufsize',''+bitrate+'k','-crf', '30','-s', ''+swidth+'x'+sheight+'','-deinterlace',"-aspect", "16:9",'-c:a', ''+audio+'', '-b:a', '64k', '-threads', '0','-'];
         }
     }
     
