@@ -20,6 +20,7 @@ var fs = require('fs'),
     temp = require('temp'),
     request = require('request'),
     parseString = require('xml2js').parseString;
+    var playFromHd = false;
 
 // node-webkit window
 var gui = require('nw.gui');
@@ -669,6 +670,11 @@ function startStreaming(req,res,inwidth,inheight) {
         } catch(err) {
             link = parsedLink.match(/\?file=(.*)/)[1].replace(/&apos;/g,'\'');
         }
+        if(link.indexOf('http') === -1 && link.indexOf('https') === -1 && link.indexOf('rtsp') === -1){
+			playFromHd=true;
+		} else {
+			playFromHd=false;
+		}
         console.log("[DEBUG] Opening link: " + link.replace(/&apos;/g,'\'')+ " req headers: "+req.headers)
         //get screen dimensions from request
         try {
@@ -778,16 +784,16 @@ function spawnFfmpeg(link,device,host,bitrate,swidth,sheight,airmedia,exitCallba
       bitrate = 0;
     }
     if (host.match(/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)/) !== null) {
-        if(link.indexOf('stream?') === -1) {
-            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','192k','-threads', '0', '-'];
+        if(playFromHd) {
+            args = ['-probesize', '100000000', '-analyzeduration', '100000000', '-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','192k','-threads', '0', '-movflags', 'faststart','-'];
         } else {
-            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset',"-x264opts", "repeat-headers=1", 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-'];
+            args = ['-probesize', '100000000', '-analyzeduration', '100000000','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264','-preset',"-x264opts", "repeat-headers=1", 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','128k','-threads', '0', '-movflags', 'faststart','-'];
         }
     } else {
-        if(link.indexOf('stream?') === -1) {
-            args = ['-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0', '-'];
+        if(playFromHd) {
+            args = ['-probesize', '100000000', '-analyzeduration', '100000000','-re','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','96k','-threads', '0','-movflags', 'faststart', '-'];
         } else {
-            args = ['-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-'];
+            args = ['-probesize', '100000000', '-analyzeduration', '100000000','-i',''+link+'','-f','matroska','-sn','-c:v', 'libx264',"-x264opts", "repeat-headers=1",'-preset', 'fast','-deinterlace',"-aspect", "16:9","-b:v",bitrate+"k",'-c:a', audio,'-b:a','64k','-threads', '0', '-movflags', 'faststart','-'];
         }
     }
     console.log('[DEBUG] Starting ffmpeg:\n' + args.join(' '));
