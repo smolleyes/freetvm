@@ -21,6 +21,7 @@ var fs = require('fs'),
     request = require('request'),
     parseString = require('xml2js').parseString;
     var playFromHd = false;
+    var isAirMediaLink = false;
 
 // node-webkit window
 var gui = require('nw.gui');
@@ -714,7 +715,15 @@ function startStreaming(req,res,inwidth,inheight) {
             }
             console.log("[DEBUG] Bitrate:" + bitrate + "k");
         }
-        // set response headers
+        // get airmedia
+		if (parsedLink.indexOf('&airmedia') !== -1){
+			  isAirMediaLink = true;
+			  link = link.replace('&airmedia','');
+			  console.log("[DEBUG] sending to Freebox thru airmedia");
+		} else {
+			  isAirMediaLink = false;
+		}
+	        // set response headers
         res.writeHead(200, {
             'Connection':'close',
             'Content-Type': 'video/mp4',
@@ -727,7 +736,7 @@ function startStreaming(req,res,inwidth,inheight) {
                 'Content-Type': 'video/mp4'
             });
             var link = link.replace('file://','');
-            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,function (code) { // exit
+            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
               $("#serverStats").empty().append("<span>ERREUR FFMPEG:<br>"+e+"</span>");
               res.end();
             });
@@ -742,7 +751,7 @@ function startStreaming(req,res,inwidth,inheight) {
             ffmpeg.stdout.pipe(res);
         } else {
             // start ffmpeg
-            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,function (code) { // exit
+            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
                 res.end();
             });
             ffmpeg.stdout.pipe(res);
