@@ -36,7 +36,7 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.5.1";
+VERSION="0.5.2";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
@@ -666,48 +666,57 @@ function startStreaming(req,res,inwidth,inheight) {
         var args;
         //get link
         try {
-            link = parsedLink.match(/\?file=(.*?)&tv/)[1].replace(/&apos;/g,'\'');
+            link = parsedLink.match(/\?file=(.*?)&tv/)[1].replace(/&apos;/g,'\'').replace('/?file=','');
         } catch(err) {
-            link = parsedLink.match(/\?file=(.*)/)[1].replace(/&apos;/g,'\'');
+            link = parsedLink.match(/\?file=(.*)/)[1].replace(/&apos;/g,'\'').replace('/?file=','');
         }
-        if(link.indexOf('http') === -1 && link.indexOf('https') === -1 && link.indexOf('rtsp') === -1){
+        if(link.indexOf('http') === -1 && link.indexOf('https') === -1 && link.indexOf('rtsp') === -1 || parsedLink.match(/playFromHd/) !== null){
 			playFromHd=true;
 		} else {
 			playFromHd=false;
 		}
         console.log("[DEBUG] Opening link: " + link.replace(/&apos;/g,'\'')+ " req headers: "+req.headers)
         //get screen dimensions from request
-        try {
-            swidth = parseInt(linkParams.slice(-1)[0].replace('screen=',"").split('x')[0]);
-            sheight = parseInt(linkParams.slice(-1)[0].replace('screen=',"").split('x')[1]);
-            if (swidth > inwidth) {
-                swidth = inwidth;
-                sheight = inheight;
-            }
-            console.log("[DEBUG] Video size: " + swidth + "x" + sheight);
-        } catch(err) {
-            console.log("[DEBUG] no width/height specified...using "+inwidth+'x'+inheight);
-        }
+		if (parsedLink.indexOf('&screen') !== -1){
+			try {
+				var resolution;
+				try {
+				  resolution = parsedLink.match(/&screen=(.*?)&/)[1];
+				  link = link.replace('&screen='+resolution+"&","");
+				} catch(err) {
+				  resolution = parsedLink.match(/&screen=(.*)/)[1];
+				  link = link.replace('&screen='+resolution,"");
+				}
+				swidth = parseInt(resolution.split('x')[0]);
+				sheight = parseInt(resolution.split('x')[1]);
+				if (swidth > inwidth) {
+					swidth = inwidth;
+					sheight = inheight;
+				}
+			} catch(err) {
+				console.log("[DEBUG] no width/height specified...using "+inwidth+'x'+inheight);
+				swidth = inwidth;
+				sheight = inheight;
+			}
+		} else {
+			swidth = inwidth;
+			sheight = inheight;
+			console.log("[DEBUG] Video size: " + swidth + "x" + sheight);
+		}
         // get bitrate
         if (parsedLink.indexOf('&bitrate') !== -1){
             try {
               bitrate = parsedLink.match(/&bitrate=(.*?)&/)[1];
+              link = link.replace('&bitrate='+bitrate+"&","");
             } catch(err) {
               bitrate = parsedLink.match(/&bitrate=(.*)/)[1];
+              link = link.replace('&bitrate='+bitrate,"");
             }
             console.log("[DEBUG] Bitrate:" + bitrate + "k");
         }
-        // get airmedia
-        if (parsedLink.indexOf('&airmedia') !== -1){
-              isAirMediaLink = true;
-              var link = link.replace('&airmedia','');
-              console.log("[DEBUG] sending to Freebox thru airmedia");
-        } else {
-              isAirMediaLink = false;
-        }
         // set response headers
         res.writeHead(200, {
-            'Connection':'keep-alive',
+            'Connection':'close',
             'Content-Type': 'video/mp4',
             'Server':'Ht5treamer/0.0.1'
         });
@@ -718,7 +727,7 @@ function startStreaming(req,res,inwidth,inheight) {
                 'Content-Type': 'video/mp4'
             });
             var link = link.replace('file://','');
-            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
+            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,function (code) { // exit
               $("#serverStats").empty().append("<span>ERREUR FFMPEG:<br>"+e+"</span>");
               res.end();
             });
@@ -733,7 +742,7 @@ function startStreaming(req,res,inwidth,inheight) {
             ffmpeg.stdout.pipe(res);
         } else {
             // start ffmpeg
-            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
+            ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,function (code) { // exit
                 res.end();
             });
             ffmpeg.stdout.pipe(res);
@@ -744,7 +753,7 @@ function startStreaming(req,res,inwidth,inheight) {
                 ffmpeg.kill('SIGKILL');
                 res.end();
                 setTimeout(function(){
-                    $("#serverStats").empty().append("<span>En attente...</span>");
+                    $("#serverStats").empty().append("<span>Stopped...</span>");
                 },2000);
         });
               
@@ -772,7 +781,7 @@ function startStreaming(req,res,inwidth,inheight) {
     res.on("close",function(){
         ffmpeg.kill('SIGKILL');
         setTimeout(function(){
-            $("#serverStats").empty().append("<span>En attente...</span>");
+            $("#serverStats").empty().append("<span>Stopped...</span>");
         },2000);
     });
 }
