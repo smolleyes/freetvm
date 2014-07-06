@@ -727,8 +727,13 @@ function startStreaming(req,res,inwidth,inheight) {
         res.writeHead(200, {
             'Connection':'close',
             'Content-Type': 'video/mp4',
-            'Server':'Ht5treamer/0.0.1'
+            'Server':'freetvm/0.0.1'
         });
+        // check width/height
+        if (swidth === 'NaN' || switdh === NaN || sheight === 'NaN' || sheight === NaN) {
+			swidth = inwidth;
+			sheight = inheight;
+		}
         // if local file
         var ffmpeg;
         if (link.indexOf('file:') !== -1) {
