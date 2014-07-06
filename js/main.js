@@ -729,11 +729,6 @@ function startStreaming(req,res,inwidth,inheight) {
             'Content-Type': 'video/mp4',
             'Server':'freetvm/0.0.1'
         });
-        // check width/height
-        if (swidth === 'NaN' || switdh === NaN || sheight === 'NaN' || sheight === NaN) {
-			swidth = inwidth;
-			sheight = inheight;
-		}
         // if local file
         var ffmpeg;
         if (link.indexOf('file:') !== -1) {
@@ -741,6 +736,11 @@ function startStreaming(req,res,inwidth,inheight) {
                 'Content-Type': 'video/mp4'
             });
             var link = link.replace('file://','');
+            // check width/height
+			if (swidth === 'NaN' || swidth === NaN || sheight === 'NaN' || sheight === NaN) {
+				swidth = inwidth;
+				sheight = inheight;
+			}
             ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
               $("#serverStats").empty().append("<span>ERREUR FFMPEG:<br>"+e+"</span>");
               res.end();
@@ -755,7 +755,11 @@ function startStreaming(req,res,inwidth,inheight) {
             });
             ffmpeg.stdout.pipe(res);
         } else {
-            // start ffmpeg
+            // check width/height
+			if (swidth === 'NaN' || swidth === NaN || sheight === 'NaN' || sheight === NaN) {
+				swidth = inwidth;
+				sheight = inheight;
+			}
             ffmpeg = spawnFfmpeg(link,device,host,bitrate,swidth,sheight,isAirMediaLink,function (code) { // exit
                 res.end();
             });
