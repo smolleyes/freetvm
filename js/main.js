@@ -37,7 +37,7 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.5.2";
+VERSION="0.5.3";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
@@ -679,26 +679,29 @@ function startStreaming(req,res,inwidth,inheight) {
         console.log("[DEBUG] Opening link: " + link.replace(/&apos;/g,'\'')+ " req headers: "+req.headers)
         //get screen dimensions from request
 		if (parsedLink.indexOf('&screen') !== -1){
-			try {
-				var resolution;
 				try {
-				  resolution = parsedLink.match(/&screen=(.*?)&/)[1];
-				  link = link.replace('&screen='+resolution+"&","");
+					var resolution;
+					try {
+					  resolution = parsedLink.match(/&screen=(.*?)&/)[1];
+					  link = link.replace('&screen='+resolution+"&","");
+					} catch(err) {
+					  resolution = parsedLink.match(/&screen=(.*)/)[1];
+					  link = link.replace('&screen='+resolution,"");
+					}
+					swidth = parseInt(resolution.split('x')[0]);
+					sheight = parseInt(resolution.split('x')[1]);
+					if (swidth > inwidth) {
+						swidth = inwidth;
+						sheight = inheight;
+					} else if(resolution.indexOf('NaN') !== -1) {
+						swidth = inwidth;
+						sheight = inheight;
+					}
 				} catch(err) {
-				  resolution = parsedLink.match(/&screen=(.*)/)[1];
-				  link = link.replace('&screen='+resolution,"");
-				}
-				swidth = parseInt(resolution.split('x')[0]);
-				sheight = parseInt(resolution.split('x')[1]);
-				if (swidth > inwidth) {
+					console.log("[DEBUG] no width/height specified...using "+inwidth+'x'+inheight);
 					swidth = inwidth;
 					sheight = inheight;
 				}
-			} catch(err) {
-				console.log("[DEBUG] no width/height specified...using "+inwidth+'x'+inheight);
-				swidth = inwidth;
-				sheight = inheight;
-			}
 		} else {
 			swidth = inwidth;
 			sheight = inheight;
