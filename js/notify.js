@@ -9,7 +9,7 @@ var online_version;
 
 $(document).ready(function(){
     try {
-        http.get('http://sd-20470.dedibox.fr/freetvm/update.html',function(res,err){
+        http.get('http://ubukey.fr/freetvm/update.html',function(res,err){
             var datas = [];
             res.on('data',function(chunk){
                 datas.push(chunk);
@@ -44,10 +44,10 @@ $(document).ready(function(){
         var link = '';
         if (process.platform === 'win32') {
             file = 'freetvm-setup.exe';
-            link = 'http://sd-20470.dedibox.fr/freetvm/windows/'+file;
+            link = 'http://ubukey.fr/freetvm/windows/'+file;
 		} else if (process.platform === 'darwin') {
 			 file = 'freetvm-osx.zip';
-			 link = 'http://sd-20470.dedibox.fr/freetvm/osx/'+file;
+			 link = 'http://ubukey.fr/freetvm/osx/'+file;
         } else {
             if (arch === 'ia32') {
                 console.log('linux 32 bits detected...');
@@ -56,7 +56,7 @@ $(document).ready(function(){
                 console.log('linux 64 bits detected...');
                 file = 'freetvm-64.zip';
             }
-            link = 'http://sd-20470.dedibox.fr/freetvm/'+file;
+            link = 'http://ubukey.fr/freetvm/'+file;
         }
         downloadUpdate(link,file);
     });
