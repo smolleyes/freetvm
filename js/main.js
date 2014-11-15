@@ -19,7 +19,8 @@ var fs = require('fs'),
     _ = require('underscore'),
     temp = require('temp'),
     request = require('request'),
-    parseString = require('xml2js').parseString;
+    parseString = require('xml2js').parseString,
+    pparser = require('playlist-parser');
     var playFromHd = false;
     var isAirMediaLink = false;
 
@@ -37,7 +38,7 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.5.4";
+VERSION="0.5.5";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
@@ -214,7 +215,6 @@ $(document).on('ready',function(e){
     
     //fbxv5 config 
    $(document).on("click","#showFbxConfigLink",function(){
-      console.log('clicked')
       gui.Shell.openExternal("http://www.dslvalley.com/dossiers/freebox/freebox-nat.php")
     });
 
@@ -287,7 +287,6 @@ function askPassword() {
 
 // shutdown pc 
 function shutdown(res) {
-	console.log('shutdown asked');
 	if(osType !== 'windows') {
 		var child;
 		if(osType === "mac") {
@@ -436,20 +435,14 @@ function startMegaServer() {
                 var canalArr = [];
                 var fChannels = [];
                 $.get('http://mafreebox.freebox.fr/freeboxtv/playlist.m3u',function(resp){
-                  var list = resp.split('#EXTINF');
+                  var M3U = pparser.M3U;
+                  var list = M3U.parse(resp);
                   $.each(list,function(index,c){
-                    var chaine = c.trim().replace(/(\r\n|\n|\r)/gm,"");
                     var infos = {};
                     try {
-                        infos.canal = chaine.split(" ")[0].split(",")[1];
-                        infos.link = 'rtsp://'+chaine.match(/rtsp:\/\/(.*)/)[1];
-                        var n;
-						if(settings.fbxVersion ==='V6'){
-							n = chaine.match(/(.*?)-(.*?)\)/)[2]+(')');
-						  } else {
-							n = chaine.match(/(.*?)- (.*?)rtsp/)[2];
-						}
-                        infos.name = n.trim();
+                        infos.canal = c.artist.trim();
+                        infos.link = c.file; 
+                        infos.name = c.title;
                         infos.thumb = 'img/fbxLogos/'+infos.canal+'.png';
                         if(infos.name.indexOf('(auto)') !== -1 || infos.name.indexOf('(TNT)') !== -1) {
                             json.channels.push(infos);
@@ -461,7 +454,7 @@ function startMegaServer() {
                       if (index+1 === list.length) {
                         if (req.url.indexOf("json") !== -1){
                               $.each(fChannels,function(index2,channel){
-                                  if($.inArray(channel.canal,canalArr) === -1) {
+                                  if(canalArr.indexOf(channel.canal) === -1) {
                                       json.channels.push(channel);
                                       if (index2+1 == fChannels.length) {
                                           var list = _.sortBy(json.channels, function(obj){ return parseInt(obj.canal) });
@@ -625,7 +618,6 @@ function getMetadata(req,res){
         try{
             if (resolution === '') {
                 var vinfos = infos.match(/Video:(.*)/)[1];
-                console.log(vinfos)
                 resolution = vinfos.toLowerCase().match(/\d{3}(?:\d*)?x\d{3}(?:\d*)/)[0];
             }
         }catch(err){
@@ -1019,12 +1011,10 @@ function browseUpnpDir(serverId,indexId,res) {
               } else {
                 if(dirs) {
                   $.each(dirs,function(index,dir){
-                    console.log(dir)
                     var uclass;
                    if(dir['upnp:class'][0].indexOf('object.container') !== -1){
                       var obj = dir['$'];
                       obj.serverId = serverId;
-                      console.log(obj)
                       var html = '<div data-role="collapsible" class="upnpFolder" data-collapsed="true" data-mini="true" data="'+encodeURIComponent(JSON.stringify(obj))+'"><h3>'+dir["dc:title"]+'</h3></div>';
                       var channel = {};
                       channel.num = parseInt(dir['dc:title'][0].split('-')[0].trim());
@@ -1046,7 +1036,6 @@ function browseUpnpDir(serverId,indexId,res) {
                         channel.data = html;
                         channels.push(channel);
                     }
-                    console.log(index+1, dirs.length)
                     if(index+1 === dirs.length) {
                         var sorted = _.sortBy(channels, 'num');
                         var body = JSON.stringify(sorted);
