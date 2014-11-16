@@ -38,7 +38,7 @@ win.on('loaded', function() {
 $.ajaxSetup({timeout: 5000});
 
 //globals
-VERSION="0.5.5";
+VERSION="0.5.6";
 var timeout = 10000; //ms
 var exec_path=path.dirname(process.execPath);
 var winIshidden = true;
@@ -471,6 +471,24 @@ function startMegaServer() {
                       }
                     } catch(err){
                       console.log("n'est pas une chaine", err);
+                      if (index+1 === list.length) {
+                        if (req.url.indexOf("json") !== -1){
+                              $.each(fChannels,function(index2,channel){
+                                  if(canalArr.indexOf(channel.canal) === -1) {
+                                      json.channels.push(channel);
+                                      if (index2+1 == fChannels.length) {
+                                          var list = _.sortBy(json.channels, function(obj){ return parseInt(obj.canal) });
+                                          var body = JSON.stringify({"channels":list});
+                                          res.writeHead(200, {"Content-Type": "application/json;charset=utf-8",'Access-Control-Allow-Origin' : '*'});
+                                          res.end(body);
+                                      }
+                                  }
+                              });
+                        } else {
+                              res.writeHead(200,{'Content-type': 'text/html','Access-Control-Allow-Origin' : '*'});
+                              res.end(html, 'utf-8');
+                        }
+                      }
                     }
                  });
               });
